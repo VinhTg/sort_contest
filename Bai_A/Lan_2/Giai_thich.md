@@ -1,143 +1,230 @@
-#include <cstdio>
-#include <cstdint>
-#include <vector>
+﻿# Giai_thich.md
 
-class FastInput {
-    static const int BUFSIZE = 1 << 16;
-    char buffer[BUFSIZE];
-    int pos = 0, len = 0;
+# So sánh tối ưu giữa lần 1 và lần 2
 
-    inline char getChar() {
-        if (pos == len) {
-            len = (int)std::fread(buffer, 1, BUFSIZE, stdin);
-            pos = 0;
-            if (len == 0) return 0;
-        }
-        return buffer[pos++];
-    }
+## Lần 1
 
-public:
-    uint32_t readUInt() {
-        char c;
-        do {
-            c = getChar();
-        } while (c <= ' ' && c);
+Lần 1 sử dụng QuickSort tối ưu gồm:
 
-        uint32_t x = 0;
-        while (c > ' ') {
-            x = x * 10u + (uint32_t)(c - '0');
-            c = getChar();
-        }
-        return x;
-    }
+* Hoare Partition
+* Median-of-Three
+* Insertion Sort cho đoạn nhỏ
+* Tail Recursion Elimination
 
-    uint32_t readIntBits() {
-        char c;
-        do {
-            c = getChar();
-        } while (c <= ' ' && c);
+QuickSort hoạt động dựa trên:
 
-        bool neg = false;
-        if (c == '-') {
-            neg = true;
-            c = getChar();
-        }
+* chia mảng
+* chọn pivot
+* so sánh phần tử
+* swap dữ liệu
 
-        uint32_t x = 0;
-        while (c > ' ') {
-            x = x * 10u + (uint32_t)(c - '0');
-            c = getChar();
-        }
-        return neg ? (0u - x) : x;
-    }
-};
+Độ phức tạp trung bình:
 
-class FastOutput {
-    static const int BUFSIZE = 1 << 16;
-    char buffer[BUFSIZE];
-    int pos = 0;
+O(n log n)
 
-    inline void putChar(char c) {
-        if (pos == BUFSIZE) flush();
-        buffer[pos++] = c;
-    }
+Tuy nhiên vẫn còn nhiều hạn chế khi xử lý dữ liệu cực lớn.
+# Lần 2
 
-public:
-    ~FastOutput() {
-        flush();
-    }
+Lần 2 chuyển sang sử dụng LSD Radix Sort base 256 kết hợp Fast IO và xử lý trực tiếp trên bit.
 
-    void flush() {
-        if (pos) {
-            std::fwrite(buffer, 1, pos, stdout);
-            pos = 0;
-        }
-    }
+Thuật toán không còn dùng phép so sánh giữa các phần tử mà xử lý theo từng byte của số nguyên 32-bit.
+# Các hướng tối ưu so với lần 1
 
-    void writeUInt(uint32_t x) {
-        char s[10];
-        int n = 0;
-        do {
-            s[n++] = (char)('0' + x % 10u);
-            x /= 10u;
-        } while (x);
-        while (n--) putChar(s[n]);
-        putChar('\n');
-    }
+## 1. Chuyển từ Comparison Sort sang Non-Comparison Sort
 
-    void writeIntBits(uint32_t bits) {
-        if (bits & 0x80000000u) {
-            putChar('-');
-            writeUInt((~bits) + 1u);
-        } else {
-            writeUInt(bits);
-        }
-    }
-};
+QuickSort:
 
-int main() {
-    FastInput in;
-    const uint32_t n = in.readUInt();
+* phải so sánh liên tục
+* phụ thuộc pivot
+* có branch prediction miss
 
-    std::vector<uint32_t> a(n), b(n);
-    uint32_t cnt[4][256] = {};
+Radix Sort:
 
-    for (uint32_t i = 0; i < n; ++i) {
-        const uint32_t key = in.readIntBits() ^ 0x80000000u;
-        a[i] = key;
-        ++cnt[0][key & 255u];
-        ++cnt[1][(key >> 8) & 255u];
-        ++cnt[2][(key >> 16) & 255u];
-        ++cnt[3][key >> 24];
-    }
+* không dùng so sánh
+* chỉ đếm tần suất và phân phối dữ liệu
 
-    uint32_t *src = a.data();
-    uint32_t *dst = b.data();
+Giúp CPU xử lý ổn định và nhanh hơn.
+## 2. Độ phức tạp tuyến tính
+QuickSort:
+O(n log n)
+Radix Sort:
+O(4n)
+vì int có 4 byte nên chỉ cần 4 pass.
+Điều này giúp tốc độ nhanh hơn đáng kể trên dữ liệu lớn.
+## 3. Không có đệ quy
+QuickSort vẫn sử dụng recursive call nên:
+* tốn stack
+* có function call overhead
+* có nguy cơ stack overflow
 
-    for (int pass = 0; pass < 4; ++pass) {
-        uint32_t pos[256];
-        uint32_t sum = 0;
-        for (int i = 0; i < 256; ++i) {
-            pos[i] = sum;
-            sum += cnt[pass][i];
-        }
+Radix Sort chạy hoàn toàn iterative nên giảm đáng kể overhead.
+## 4. Tối ưu Input/Output
 
-        const int shift = pass * 8;
-        for (uint32_t i = 0; i < n; ++i) {
-            const uint32_t x = src[i];
-            dst[pos[(x >> shift) & 255u]++] = x;
-        }
+Lần 1 sử dụng:
 
-        uint32_t *tmp = src;
-        src = dst;
-        dst = tmp;
-    }
+```cpp id="tzw9p2"
+cin / cout
+```
 
-    FastOutput out;
-    out.writeUInt(n);
-    for (uint32_t i = 0; i < n; ++i) {
-        out.writeIntBits(src[i] ^ 0x80000000u);
-    }
+Dù đã tắt sync nhưng vẫn chậm hơn fread/fwrite.
 
-    return 0;
-}
+Lần 2 sử dụng:
+
+```cpp id="7wgfgs"
+fread
+fwrite
+```
+
+kết hợp buffer lớn:
+
+```cpp id="m5c7c0"
+1 << 16
+```
+
+Giúp giảm số lần gọi hệ thống I/O.
+
+Đây là tối ưu rất lớn khi dữ liệu có hàng triệu số.
+
+---
+
+## 5. Xử lý trực tiếp trên bit
+
+Lần 2 sử dụng:
+
+```cpp id="59p45m"
+uint32_t
+```
+
+và thao tác bit:
+
+```cpp id="w5mjlwm"
+(key >> shift) & 255
+```
+
+CPU xử lý bit operation cực nhanh vì:
+
+* không cần phép chia
+* không cần modulo
+* chỉ dùng shift và mask
+## 6. Tách trước toàn bộ histogram
+Trong lúc đọc input:
+```cpp id="vnhmwx"
+++cnt[0][...]
+++cnt[1][...]
+++cnt[2][...]
+++cnt[3][...]
+```
+đã đồng thời tạo histogram cho cả 4 pass.
+Điều này giúp:
+* giảm số lần duyệt mảng
+* giảm cache miss
+* giảm memory access
+Trong khi radix cơ bản thường phải đếm lại ở mỗi pass.
+## 7. Giảm số lần copy dữ liệu
+Code sử dụng:
+
+```cpp id="vjlwm5"
+src
+dst
+```
+
+và hoán đổi con trỏ:
+
+```cpp id="goi3ah"
+tmp = src;
+src = dst;
+dst = tmp;
+```
+
+thay vì copy cả mảng.
+
+Giúp giảm rất lớn chi phí memory bandwidth.
+
+---
+
+## 8. Tối ưu cache CPU
+
+Radix Sort truy cập bộ nhớ tuần tự:
+
+```cpp id="kdy4d2"
+for i = 0 -> n
+```
+
+Giúp:
+
+* cache locality tốt
+* prefetch hiệu quả
+* giảm cache miss
+
+QuickSort truy cập dữ liệu phân tán hơn nên cache kém hơn.
+
+---
+
+## 9. Xử lý số âm không cần branch
+
+Sử dụng:
+
+```cpp id="66qjlg"
+key ^ 0x80000000u
+```
+
+Giúp:
+
+* biến signed int thành unsigned sortable
+* số âm tự động nằm trước số dương
+* không cần if riêng cho số âm
+
+Giảm branch prediction fail.
+
+---
+
+# Độ phức tạp
+
+## QuickSort
+
+### Trung bình
+
+O(n log n)
+
+### Tệ nhất
+
+O(n²)
+
+---
+
+## Radix Sort
+
+### Mọi trường hợp
+O(n)
+với int 32-bit cố định.
+
+---
+
+# Bộ nhớ
+
+## QuickSort
+
+O(log n)
+
+## Radix Sort
+
+O(n)
+
+do dùng thêm buffer phụ.
+
+---
+
+# Kết luận
+
+Phiên bản lần 2 tối ưu mạnh hơn lần 1 ở các điểm:
+
+* không dùng comparison
+* không recursion
+* tối ưu bit operation
+* Fast IO bằng fread/fwrite
+* cache locality tốt hơn
+* giảm branch misprediction
+* giảm số lần duyệt dữ liệus
+* giảm số lần copy mảng
+
+Kết quả là tốc độ thực tế nhanh hơn đáng kể trên dữ liệu lớn, đặc biệt với các bài sort contest số nguyên.
