@@ -1,230 +1,427 @@
-﻿# Giai_thich.md
+﻿### Là T đã làm xuống còn 46ms nên là m phải làm lại phần giải thích này.
 
-# So sánh tối ưu giữa lần 1 và lần 2
+### M có thể làm theo hướng
 
-## Lần 1
+### dựa trên thuật toán của code này:
 
-Lần 1 sử dụng QuickSort tối ưu gồm:
+```
+#include <iostream>
+#include <cstring>
+#include <cstdio>
 
-* Hoare Partition
-* Median-of-Three
-* Insertion Sort cho đoạn nhỏ
-* Tail Recursion Elimination
+using namespace std;
 
-QuickSort hoạt động dựa trên:
+const int MAXN = 100005;
+const int MAX_BUF = 15000005;
 
-* chia mảng
-* chọn pivot
-* so sánh phần tử
-* swap dữ liệu
+char in_buf[MAX_BUF];
+char out_buf[MAX_BUF];
 
-Độ phức tạp trung bình:
+int out_ptr = 0;
 
-O(n log n)
+char* strings[MAXN];
+int str_len[MAXN];
 
-Tuy nhiên vẫn còn nhiều hạn chế khi xử lý dữ liệu cực lớn.
-# Lần 2
+int idx1[MAXN];
+int idx2[MAXN];
 
-Lần 2 chuyển sang sử dụng LSD Radix Sort base 256 kết hợp Fast IO và xử lý trực tiếp trên bit.
+inline void flush_out() {
+    fwrite(out_buf, 1, out_ptr, stdout);
+    out_ptr = 0;
+}
 
-Thuật toán không còn dùng phép so sánh giữa các phần tử mà xử lý theo từng byte của số nguyên 32-bit.
-# Các hướng tối ưu so với lần 1
+inline void fast_write(const char* s, int len) {
+    memcpy(out_buf + out_ptr, s, len);
+    out_ptr += len;
+    out_buf[out_ptr++] = '\n';
 
-## 1. Chuyển từ Comparison Sort sang Non-Comparison Sort
+    if (out_ptr > MAX_BUF - 200) {
+        flush_out();
+    }
+}
 
-QuickSort:
+inline int bucket(unsigned char c) {
+    return c ? (c - 'a' + 1) : 0;
+}
 
-* phải so sánh liên tục
-* phụ thuộc pivot
-* có branch prediction miss
+inline bool less_suffix(const char* a, const char* b, int depth) {
+    a += depth;
+    b += depth;
 
-Radix Sort:
+    while (*a == *b && *a) {
+        ++a;
+        ++b;
+    }
 
-* không dùng so sánh
-* chỉ đếm tần suất và phân phối dữ liệu
+    return *a < *b;
+}
 
-Giúp CPU xử lý ổn định và nhanh hơn.
-## 2. Độ phức tạp tuyến tính
-QuickSort:
-O(n log n)
-Radix Sort:
-O(4n)
-vì int có 4 byte nên chỉ cần 4 pass.
-Điều này giúp tốc độ nhanh hơn đáng kể trên dữ liệu lớn.
-## 3. Không có đệ quy
-QuickSort vẫn sử dụng recursive call nên:
-* tốn stack
-* có function call overhead
-* có nguy cơ stack overflow
+void insertion_sort(int* id, int n, int depth) {
+    for (int i = 1; i < n; ++i) {
+        int key = id[i];
+        int j = i - 1;
 
-Radix Sort chạy hoàn toàn iterative nên giảm đáng kể overhead.
-## 4. Tối ưu Input/Output
+        while (j >= 0 &&
+               less_suffix(strings[key], strings[id[j]], depth)) {
+            id[j + 1] = id[j];
+            --j;
+        }
 
-Lần 1 sử dụng:
+        id[j + 1] = key;
+    }
+}
 
-```cpp id="tzw9p2"
-cin / cout
+void msdRadix(int* src, int* dst, int n, int depth) {
+    if (n <= 1) return;
+
+    if (n <= 32) {
+        insertion_sort(src, n, depth);
+        return;
+    }
+
+    int count[27] = {};
+    int start[27];
+    int pos[27];
+
+    for (int i = 0; i < n; ++i) {
+        ++count[bucket((unsigned char)strings[src[i]][depth])];
+    }
+
+    start[0] = 0;
+    for (int i = 1; i < 27; ++i) {
+        start[i] = start[i - 1] + count[i - 1];
+    }
+
+    memcpy(pos, start, sizeof(start));
+
+    for (int i = 0; i < n; ++i) {
+        int v = src[i];
+        dst[pos[bucket((unsigned char)strings[v][depth])]++] = v;
+    }
+
+    memcpy(src, dst, n * sizeof(int));
+
+    for (int b = 1; b < 27; ++b) {
+        int sz = count[b];
+
+        if (sz > 1) {
+            msdRadix(src + start[b],
+                     dst + start[b],
+                     sz,
+                     depth + 1);
+        }
+    }
+}
+
+inline void write_int(int x) {
+    char s[16];
+    int len = 0;
+
+    do {
+        s[len++] = char('0' + x % 10);
+        x /= 10;
+    } while (x);
+
+    while (len--) {
+        out_buf[out_ptr++] = s[len];
+    }
+
+    out_buf[out_ptr++] = '\n';
+}
+
+int main() {
+    size_t bytes = fread(in_buf, 1, MAX_BUF - 1, stdin);
+
+    if (!bytes) return 0;
+
+    in_buf[bytes] = '\0';
+
+    int p = 0;
+    int n = 0;
+
+    while (in_buf[p] < '0' || in_buf[p] > '9') ++p;
+
+    while (in_buf[p] >= '0' && in_buf[p] <= '9') {
+        n = n * 10 + (in_buf[p++] - '0');
+    }
+
+    for (int i = 0; i < n; ++i) {
+        while (in_buf[p] < 'a' || in_buf[p] > 'z') ++p;
+
+        strings[i] = &in_buf[p];
+        idx1[i] = i;
+
+        int st = p;
+
+        while (in_buf[p] >= 'a' && in_buf[p] <= 'z') ++p;
+
+        str_len[i] = p - st;
+
+        in_buf[p++] = '\0';
+    }
+
+    msdRadix(idx1, idx2, n, 0);
+
+    write_int(n);
+
+    for (int i = 0; i < n; ++i) {
+        int id = idx1[i];
+        fast_write(strings[id], str_len[id]);
+    }
+
+    if (out_ptr) flush_out();
+
+    return 0;
+}
 ```
 
-Dù đã tắt sync nhưng vẫn chậm hơn fread/fwrite.
+### sẽ ra được code này:
 
-Lần 2 sử dụng:
+```
+#include <iostream>
+#include <cstring>
+#include <cstdio>
 
-```cpp id="7wgfgs"
-fread
-fwrite
+using namespace std;
+
+const int MAXN = 100005;
+const int MAX_BUF = 15000005;
+
+char in_buf[MAX_BUF];
+char out_buf[MAX_BUF];
+
+int out_ptr = 0;
+int p = 0;
+
+inline void flush_out() {
+    fwrite(out_buf, 1, out_ptr, stdout);
+    out_ptr = 0;
+}
+
+inline void write_int(int x) {
+    if (x == 0) {
+        out_buf[out_ptr++] = '0';
+        out_buf[out_ptr++] = '\n';
+        if (out_ptr > MAX_BUF - 200) flush_out();
+        return;
+    }
+    
+    if (x < 0) {
+        out_buf[out_ptr++] = '-';
+    }
+    
+    unsigned int ux = (x < 0) ? -(unsigned int)x : (unsigned int)x;
+    char s[16];
+    int len = 0;
+    
+    do {
+        s[len++] = char('0' + ux % 10);
+        ux /= 10;
+    } while (ux);
+
+    while (len--) {
+        out_buf[out_ptr++] = s[len];
+    }
+    out_buf[out_ptr++] = '\n';
+
+    if (out_ptr > MAX_BUF - 200) flush_out();
+}
+
+inline void read_int(int &x) {
+    while (in_buf[p] && in_buf[p] <= ' ') ++p;
+    if (!in_buf[p]) return;
+    
+    bool neg = false;
+    if (in_buf[p] == '-') {
+        neg = true;
+        ++p;
+    }
+    
+    x = 0;
+    while (in_buf[p] >= '0' && in_buf[p] <= '9') {
+        x = x * 10 + (in_buf[p++] - '0');
+    }
+    
+    if (neg) x = -x;
+}
+
+void radix_sort(int* arr, int n) {
+    unsigned int* a = (unsigned int*)arr;
+    unsigned int* b = new unsigned int[n];
+
+    for (int i = 0; i < n; ++i) {
+        a[i] ^= 0x80000000;
+    }
+
+    for (int shift = 0; shift < 32; shift += 8) {
+        int cnt[256] = {0};
+        
+        for (int i = 0; i < n; ++i) {
+            cnt[(a[i] >> shift) & 0xFF]++;
+        }
+        
+        for (int i = 1; i < 256; ++i) {
+            cnt[i] += cnt[i - 1];
+        }
+        
+        for (int i = n - 1; i >= 0; --i) {
+            b[--cnt[(a[i] >> shift) & 0xFF]] = a[i];
+        }
+        
+        memcpy(a, b, n * sizeof(unsigned int));
+    }
+
+    for (int i = 0; i < n; ++i) {
+        a[i] ^= 0x80000000;
+    }
+
+    delete[] b;
+}
+
+int arr[MAXN];
+
+int main() {
+    size_t bytes = fread(in_buf, 1, MAX_BUF - 1, stdin);
+    if (!bytes) return 0;
+    in_buf[bytes] = '\0';
+
+    int n;
+    read_int(n);
+
+    for (int i = 0; i < n; ++i) {
+        read_int(arr[i]);
+    }
+
+    radix_sort(arr, n);
+
+    write_int(n);
+    for (int i = 0; i < n; ++i) {
+        write_int(arr[i]);
+    }
+
+    if (out_ptr) flush_out();
+
+    return 0;
+}
 ```
 
-kết hợp buffer lớn:
+### Sau đó tối ưu thêm việc nhập xuất sao cho nhanh thì ra được thuật toán tối ưu nhất này:
+#include <iostream>
+#include <cstring>
+#include <cstdio>
 
-```cpp id="m5c7c0"
-1 << 16
-```
+using namespace std;
 
-Giúp giảm số lần gọi hệ thống I/O.
+const int MAXN = 100005;
+const int MAX_BUF = 2000005;
 
-Đây là tối ưu rất lớn khi dữ liệu có hàng triệu số.
+char in_buf[MAX_BUF];
+char out_buf[MAX_BUF];
 
----
+int out_ptr = 0;
+int p = 0;
 
-## 5. Xử lý trực tiếp trên bit
+inline void write_int(int x) {
+    unsigned int ux;
+    if (x < 0) {
+        out_buf[out_ptr++] = '-';
+        ux = -(unsigned int)x;
+    } else {
+        ux = x;
+    }
+    
+    char s[12];
+    int len = 0;
+    
+    do {
+        s[len++] = ux % 10 + '0';
+        ux /= 10;
+    } while (ux);
 
-Lần 2 sử dụng:
+    while (len) {
+        out_buf[out_ptr++] = s[--len];
+    }
+    out_buf[out_ptr++] = '\n';
+}
 
-```cpp id="59p45m"
-uint32_t
-```
+inline void read_int(int &x) {
+    while (in_buf[p] < '-') ++p;
+    
+    bool neg = (in_buf[p] == '-');
+    if (neg) ++p;
+    
+    x = 0;
+    while (in_buf[p] >= '0') {
+        x = x * 10 + (in_buf[p++] - '0');
+    }
+    
+    if (neg) x = -x;
+}
 
-và thao tác bit:
+unsigned int arr_a[MAXN];
+unsigned int arr_b[MAXN];
 
-```cpp id="w5mjlwm"
-(key >> shift) & 255
-```
+void radix_sort(int n) {
+    int cnt[4][256] = {{0}};
+    
+    for (int i = 0; i < n; ++i) {
+        arr_a[i] ^= 0x80000000;
+        unsigned int v = arr_a[i];
+        cnt[0][v & 0xFF]++;
+        cnt[1][(v >> 8) & 0xFF]++;
+        cnt[2][(v >> 16) & 0xFF]++;
+        cnt[3][v >> 24]++;
+    }
 
-CPU xử lý bit operation cực nhanh vì:
+    int pos[4][256];
+    for (int j = 0; j < 4; ++j) {
+        pos[j][0] = 0;
+        for (int i = 1; i < 256; ++i) {
+            pos[j][i] = pos[j][i - 1] + cnt[j][i - 1];
+        }
+    }
 
-* không cần phép chia
-* không cần modulo
-* chỉ dùng shift và mask
-## 6. Tách trước toàn bộ histogram
-Trong lúc đọc input:
-```cpp id="vnhmwx"
-++cnt[0][...]
-++cnt[1][...]
-++cnt[2][...]
-++cnt[3][...]
-```
-đã đồng thời tạo histogram cho cả 4 pass.
-Điều này giúp:
-* giảm số lần duyệt mảng
-* giảm cache miss
-* giảm memory access
-Trong khi radix cơ bản thường phải đếm lại ở mỗi pass.
-## 7. Giảm số lần copy dữ liệu
-Code sử dụng:
+    for (int i = 0; i < n; ++i) {
+        arr_b[pos[0][arr_a[i] & 0xFF]++] = arr_a[i];
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        arr_a[pos[1][(arr_b[i] >> 8) & 0xFF]++] = arr_b[i];
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        arr_b[pos[2][(arr_a[i] >> 16) & 0xFF]++] = arr_a[i];
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        arr_a[pos[3][arr_b[i] >> 24]++] = arr_b[i];
+    }
 
-```cpp id="vjlwm5"
-src
-dst
-```
+    for (int i = 0; i < n; ++i) {
+        arr_a[i] ^= 0x80000000;
+    }
+}
 
-và hoán đổi con trỏ:
+int main() {
+    size_t bytes = fread(in_buf, 1, MAX_BUF - 1, stdin);
+    if (!bytes) return 0;
+    in_buf[bytes] = '\0';
 
-```cpp id="goi3ah"
-tmp = src;
-src = dst;
-dst = tmp;
-```
+    int n;
+    read_int(n);
 
-thay vì copy cả mảng.
+    for (int i = 0; i < n; ++i) {
+        read_int((int&)arr_a[i]);
+    }
 
-Giúp giảm rất lớn chi phí memory bandwidth.
+    radix_sort(n);
 
----
+    write_int(n);
+    for (int i = 0; i < n; ++i) {
+        write_int((int)arr_a[i]);
+    }
 
-## 8. Tối ưu cache CPU
+    fwrite(out_buf, 1, out_ptr, stdout);
 
-Radix Sort truy cập bộ nhớ tuần tự:
-
-```cpp id="kdy4d2"
-for i = 0 -> n
-```
-
-Giúp:
-
-* cache locality tốt
-* prefetch hiệu quả
-* giảm cache miss
-
-QuickSort truy cập dữ liệu phân tán hơn nên cache kém hơn.
-
----
-
-## 9. Xử lý số âm không cần branch
-
-Sử dụng:
-
-```cpp id="66qjlg"
-key ^ 0x80000000u
-```
-
-Giúp:
-
-* biến signed int thành unsigned sortable
-* số âm tự động nằm trước số dương
-* không cần if riêng cho số âm
-
-Giảm branch prediction fail.
-
----
-
-# Độ phức tạp
-
-## QuickSort
-
-### Trung bình
-
-O(n log n)
-
-### Tệ nhất
-
-O(n²)
-
----
-
-## Radix Sort
-
-### Mọi trường hợp
-O(n)
-với int 32-bit cố định.
-
----
-
-# Bộ nhớ
-
-## QuickSort
-
-O(log n)
-
-## Radix Sort
-
-O(n)
-
-do dùng thêm buffer phụ.
-
----
-
-# Kết luận
-
-Phiên bản lần 2 tối ưu mạnh hơn lần 1 ở các điểm:
-
-* không dùng comparison
-* không recursion
-* tối ưu bit operation
-* Fast IO bằng fread/fwrite
-* cache locality tốt hơn
-* giảm branch misprediction
-* giảm số lần duyệt dữ liệus
-* giảm số lần copy mảng
-
-Kết quả là tốc độ thực tế nhanh hơn đáng kể trên dữ liệu lớn, đặc biệt với các bài sort contest số nguyên.
+    return 0;
+}

@@ -1,143 +1,119 @@
+#include <iostream>
+#include <cstring>
 #include <cstdio>
-#include <cstdint>
-#include <vector>
 
-class FastInput {
-    static const int BUFSIZE = 1 << 16;
-    char buffer[BUFSIZE];
-    int pos = 0, len = 0;
+using namespace std;
 
-    inline char getChar() {
-        if (pos == len) {
-            len = (int)std::fread(buffer, 1, BUFSIZE, stdin);
-            pos = 0;
-            if (len == 0) return 0;
-        }
-        return buffer[pos++];
+const int MAXN = 100005;
+const int MAX_BUF = 2000005;
+
+char in_buf[MAX_BUF];
+char out_buf[MAX_BUF];
+
+int out_ptr = 0;
+int p = 0;
+
+inline void write_int(int x) {
+    unsigned int ux;
+    if (x < 0) {
+        out_buf[out_ptr++] = '-';
+        ux = -(unsigned int)x;
+    } else {
+        ux = x;
+    }
+    
+    char s[12];
+    int len = 0;
+    
+    do {
+        s[len++] = ux % 10 + '0';
+        ux /= 10;
+    } while (ux);
+
+    while (len) {
+        out_buf[out_ptr++] = s[--len];
+    }
+    out_buf[out_ptr++] = '\n';
+}
+
+inline void read_int(int &x) {
+    while (in_buf[p] < '-') ++p;
+    
+    bool neg = (in_buf[p] == '-');
+    if (neg) ++p;
+    
+    x = 0;
+    while (in_buf[p] >= '0') {
+        x = x * 10 + (in_buf[p++] - '0');
+    }
+    
+    if (neg) x = -x;
+}
+
+unsigned int arr_a[MAXN];
+unsigned int arr_b[MAXN];
+
+void radix_sort(int n) {
+    int cnt[4][256] = {{0}};
+    
+    for (int i = 0; i < n; ++i) {
+        arr_a[i] ^= 0x80000000;
+        unsigned int v = arr_a[i];
+        cnt[0][v & 0xFF]++;
+        cnt[1][(v >> 8) & 0xFF]++;
+        cnt[2][(v >> 16) & 0xFF]++;
+        cnt[3][v >> 24]++;
     }
 
-public:
-    uint32_t readUInt() {
-        char c;
-        do {
-            c = getChar();
-        } while (c <= ' ' && c);
-
-        uint32_t x = 0;
-        while (c > ' ') {
-            x = x * 10u + (uint32_t)(c - '0');
-            c = getChar();
-        }
-        return x;
-    }
-
-    uint32_t readIntBits() {
-        char c;
-        do {
-            c = getChar();
-        } while (c <= ' ' && c);
-
-        bool neg = false;
-        if (c == '-') {
-            neg = true;
-            c = getChar();
-        }
-
-        uint32_t x = 0;
-        while (c > ' ') {
-            x = x * 10u + (uint32_t)(c - '0');
-            c = getChar();
-        }
-        return neg ? (0u - x) : x;
-    }
-};
-
-class FastOutput {
-    static const int BUFSIZE = 1 << 16;
-    char buffer[BUFSIZE];
-    int pos = 0;
-
-    inline void putChar(char c) {
-        if (pos == BUFSIZE) flush();
-        buffer[pos++] = c;
-    }
-
-public:
-    ~FastOutput() {
-        flush();
-    }
-
-    void flush() {
-        if (pos) {
-            std::fwrite(buffer, 1, pos, stdout);
-            pos = 0;
+    int pos[4][256];
+    for (int j = 0; j < 4; ++j) {
+        pos[j][0] = 0;
+        for (int i = 1; i < 256; ++i) {
+            pos[j][i] = pos[j][i - 1] + cnt[j][i - 1];
         }
     }
 
-    void writeUInt(uint32_t x) {
-        char s[10];
-        int n = 0;
-        do {
-            s[n++] = (char)('0' + x % 10u);
-            x /= 10u;
-        } while (x);
-        while (n--) putChar(s[n]);
-        putChar('\n');
+    for (int i = 0; i < n; ++i) {
+        arr_b[pos[0][arr_a[i] & 0xFF]++] = arr_a[i];
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        arr_a[pos[1][(arr_b[i] >> 8) & 0xFF]++] = arr_b[i];
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        arr_b[pos[2][(arr_a[i] >> 16) & 0xFF]++] = arr_a[i];
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        arr_a[pos[3][arr_b[i] >> 24]++] = arr_b[i];
     }
 
-    void writeIntBits(uint32_t bits) {
-        if (bits & 0x80000000u) {
-            putChar('-');
-            writeUInt((~bits) + 1u);
-        } else {
-            writeUInt(bits);
-        }
+    for (int i = 0; i < n; ++i) {
+        arr_a[i] ^= 0x80000000;
     }
-};
+}
 
 int main() {
-    FastInput in;
-    const uint32_t n = in.readUInt();
+    size_t bytes = fread(in_buf, 1, MAX_BUF - 1, stdin);
+    if (!bytes) return 0;
+    in_buf[bytes] = '\0';
 
-    std::vector<uint32_t> a(n), b(n);
-    uint32_t cnt[4][256] = {};
+    int n;
+    read_int(n);
 
-    for (uint32_t i = 0; i < n; ++i) {
-        const uint32_t key = in.readIntBits() ^ 0x80000000u;
-        a[i] = key;
-        ++cnt[0][key & 255u];
-        ++cnt[1][(key >> 8) & 255u];
-        ++cnt[2][(key >> 16) & 255u];
-        ++cnt[3][key >> 24];
+    for (int i = 0; i < n; ++i) {
+        read_int((int&)arr_a[i]);
     }
 
-    uint32_t *src = a.data();
-    uint32_t *dst = b.data();
+    radix_sort(n);
 
-    for (int pass = 0; pass < 4; ++pass) {
-        uint32_t pos[256];
-        uint32_t sum = 0;
-        for (int i = 0; i < 256; ++i) {
-            pos[i] = sum;
-            sum += cnt[pass][i];
-        }
-
-        const int shift = pass * 8;
-        for (uint32_t i = 0; i < n; ++i) {
-            const uint32_t x = src[i];
-            dst[pos[(x >> shift) & 255u]++] = x;
-        }
-
-        uint32_t *tmp = src;
-        src = dst;
-        dst = tmp;
+    write_int(n);
+    for (int i = 0; i < n; ++i) {
+        write_int((int)arr_a[i]);
     }
 
-    FastOutput out;
-    out.writeUInt(n);
-    for (uint32_t i = 0; i < n; ++i) {
-        out.writeIntBits(src[i] ^ 0x80000000u);
-    }
+    fwrite(out_buf, 1, out_ptr, stdout);
 
     return 0;
 }
