@@ -1,5 +1,4 @@
-﻿# Giai_thich.md
-
+﻿
 # So sánh tối ưu giữa lần 1 và lần 2
 
 ## Lần 1
@@ -13,9 +12,9 @@ Lần 1 sử dụng QuickSort tối ưu gồm:
 
 Thuật toán hoạt động dựa trên:
 
+* so sánh phần tử
 * chọn pivot
 * chia mảng
-* so sánh phần tử
 * swap dữ liệu
 
 Độ phức tạp trung bình:
@@ -26,32 +25,30 @@ O(n log n)
 
 # Lần 2
 
-Lần 2 sử dụng LSD Radix Sort base 256 kết hợp Fast IO và xử lý bit trực tiếp.
+Lần 2 chuyển sang sử dụng LSD Radix Sort base 256 kết hợp Fast IO và buffer thủ công.
 
-Thuật toán không dùng phép so sánh mà xử lý theo từng byte của số nguyên 32-bit.
+Thuật toán xử lý trực tiếp trên bit của số nguyên 32-bit thay vì dùng phép so sánh.
 
 Độ phức tạp:
 
 O(n)
 
-với số pass cố định là 4.
-
 ---
 
 # Các hướng tối ưu so với lần 1
 
-## 1. Không dùng comparison
+## 1. Chuyển từ Comparison Sort sang Non-Comparison Sort
 
-QuickSort phải:
+QuickSort cần:
 
 * so sánh liên tục
 * branch nhiều
 * phụ thuộc pivot
 
-Radix Sort chỉ:
+Radix Sort:
 
-* đếm tần suất
-* phân phối dữ liệu
+* không dùng comparison
+* chỉ phân phối dữ liệu theo byte
 
 Giảm đáng kể branch misprediction của CPU.
 
@@ -67,9 +64,9 @@ Radix Sort:
 
 O(4n)
 
-Do int có 4 byte nên chỉ cần 4 pass.
+vì int có 4 byte nên chỉ cần 4 pass cố định.
 
-Tốc độ nhanh hơn đáng kể trên dữ liệu lớn.
+Giúp tốc độ nhanh hơn rõ rệt trên dữ liệu lớn.
 
 ---
 
@@ -86,34 +83,54 @@ Radix Sort chạy iterative hoàn toàn nên giảm overhead.
 
 ## 4. Fast IO bằng fread/fwrite
 
-Lần 1 dùng:
+Lần 1 sử dụng:
 
-```cpp id="w9g9hg"
+```cpp id="wdbjlwm"
 cin / cout
 ```
 
-Lần 2 dùng:
+Lần 2 sử dụng:
 
-```cpp id="dknh75"
+```cpp id="v2l2lo"
 fread / fwrite
 ```
 
 kèm buffer lớn:
 
-```cpp id="n85i7f"
-1 << 16
+```cpp id="hlr1o3"
+char in_buf[MAX_BUF]
+char out_buf[MAX_BUF]
 ```
 
-Giảm số lần gọi hệ thống I/O nên nhanh hơn nhiều.
+Giảm số lần gọi hệ thống I/O nên nhanh hơn đáng kể.
 
 ---
 
-## 5. Xử lý trực tiếp trên bit
+## 5. Parse số nguyên thủ công
 
 Sử dụng:
 
-```cpp id="ifh70l"
-(key >> shift) & 255
+```cpp id="wl9ggg"
+read_int()
+write_int()
+```
+
+thay vì stream của C++.
+
+Giúp:
+
+* giảm overhead của iostream
+* đọc ghi trực tiếp trên buffer
+* tăng tốc đáng kể với dữ liệu lớn
+
+---
+
+## 6. Xử lý bit trực tiếp
+
+Sử dụng:
+
+```cpp id="zhfctw"
+(v >> shift) & 0xFF
 ```
 
 CPU xử lý:
@@ -121,22 +138,22 @@ CPU xử lý:
 * shift
 * mask
 
-nhanh hơn rất nhiều so với phép chia hoặc modulo.
+nhanh hơn phép chia hoặc modulo.
 
 ---
 
-## 6. Tạo histogram ngay lúc đọc input
+## 7. Tạo histogram cho toàn bộ pass ngay từ đầu
 
-Trong lúc đọc dữ liệu:
+Trong lúc duyệt dữ liệu:
 
-```cpp id="v2krv4"
-++cnt[0][...]
-++cnt[1][...]
-++cnt[2][...]
-++cnt[3][...]
+```cpp id="yg3ydc"
+cnt[0][...]
+cnt[1][...]
+cnt[2][...]
+cnt[3][...]
 ```
 
-đã đồng thời tạo toàn bộ histogram cho 4 pass.
+đã đồng thời thống kê cho cả 4 pass.
 
 Giúp:
 
@@ -146,32 +163,30 @@ Giúp:
 
 ---
 
-## 7. Giảm copy dữ liệu
+## 8. Dùng static array thay cho vector động
 
-Sử dụng:
+Lần 2 sử dụng:
 
-```cpp id="8gpx6v"
-src
-dst
+```cpp id="fagc5f"
+unsigned int arr_a[MAXN]
+unsigned int arr_b[MAXN]
 ```
 
-và đổi con trỏ:
+Giúp:
 
-```cpp id="q2j40r"
-tmp = src;
-src = dst;
-dst = tmp;
-```
-
-thay vì copy toàn bộ mảng sau mỗi pass.
-
-Giảm đáng kể memory bandwidth.
+* dữ liệu liên tục trong memory
+* cache locality tốt hơn
+* tránh overhead cấp phát động
 
 ---
 
-## 8. Tối ưu cache CPU
+## 9. Tối ưu cache CPU
 
-Radix Sort truy cập bộ nhớ tuần tự.
+Radix Sort truy cập bộ nhớ tuần tự:
+
+```cpp id="e8z0vx"
+for i = 0 -> n
+```
 
 Giúp:
 
@@ -179,23 +194,39 @@ Giúp:
 * prefetch hiệu quả
 * giảm cache miss
 
-QuickSort truy cập dữ liệu phân tán hơn nên cache kém hơn.
+QuickSort truy cập phân tán hơn nên cache kém hơn.
 
 ---
 
-## 9. Xử lý số âm bằng XOR
+## 10. Xử lý số âm bằng XOR
 
 Sử dụng:
 
-```cpp id="o5q0gn"
-key ^ 0x80000000u
+```cpp id="0fjlwm"
+arr_a[i] ^= 0x80000000
 ```
 
 Giúp:
 
 * chuyển signed int thành unsigned sortable
-* số âm tự nằm trước số dương
+* số âm tự động nằm trước số dương
 * không cần branch xử lý riêng
+
+---
+
+## 11. Giảm số lần cấp phát bộ nhớ
+
+QuickSort dùng:
+
+```cpp id="5rvl1l"
+new int[n]
+```
+
+Lần 2 dùng static array cố định nên:
+
+* tránh heap allocation
+* giảm memory overhead
+* truy cập nhanh hơn
 
 ---
 
@@ -230,10 +261,11 @@ Phiên bản lần 2 tối ưu hơn lần 1 ở các điểm:
 * không dùng comparison
 * không recursion
 * Fast IO mạnh hơn
-* tối ưu bit operation
-* giảm branch misprediction
+* parse số nguyên thủ công
+* xử lý bit trực tiếp
 * cache locality tốt hơn
+* giảm branch misprediction
+* giảm memory overhead
 * giảm số lần duyệt dữ liệu
-* giảm chi phí copy mảng
 
 Kết quả là tốc độ thực tế nhanh hơn đáng kể trên dữ liệu lớn trong các bài sort contest.
