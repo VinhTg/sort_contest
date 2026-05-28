@@ -4,7 +4,7 @@
 * **Tên môn học:** Cấu trúc dữ liệu và Giải thuật (Data Structures and Algorithms)
 * **Thời gian học:** Học kỳ 2, Năm học 2025 - 2026
 * **Họ và tên sinh viên:** Lê Trung Vinh, Huỳnh Trịnh Chí Tài, Nguyễn Trương Đức Tiến
-* **Mã số sinh viên:** 25120470, ..., ...
+* **Mã số sinh viên:** 25120470, 25120431,25120446
 * **Affiliation:** Ho Chi Minh City University of Science (HCMUS)
 * **Repository Link:** https://github.com/VinhTg/sort_contest
 
