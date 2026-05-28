@@ -16,7 +16,7 @@
 
 2. Cần tối ưu code vào lần nộp 2 
 
-3. Ghi giải thích các hướng tối ưu so với lần 1.
+3. Ghi giải thích các hướng tối ưu so với lần 1. cơm mẹ nấu 
 
 4. Làm phần test_gen của phần sinh test cũ.
 
