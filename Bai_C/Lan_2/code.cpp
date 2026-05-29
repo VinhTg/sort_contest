@@ -1,143 +1,95 @@
+#include <iostream>
+#include <cstring>
+#include <algorithm>
 #include <cstdio>
-#include <cstdint>
-#include <vector>
 
-class FastInput {
-    static const int BUFSIZE = 1 << 16;
-    char buffer[BUFSIZE];
-    int pos = 0, len = 0;
+using namespace std;
 
-    inline char getChar() {
-        if (pos == len) {
-            len = (int)std::fread(buffer, 1, BUFSIZE, stdin);
-            pos = 0;
-            if (len == 0) return 0;
-        }
-        return buffer[pos++];
-    }
+const int MAX_BUF = 30000005; 
+const int MAX_N = 1000005;     
+const int MAX_LEN = 10005;
 
-public:
-    uint32_t readUInt() {
-        char c;
-        do {
-            c = getChar();
-        } while (c <= ' ' && c);
+char in_buf[MAX_BUF];
+char out_buf[MAX_BUF];
 
-        uint32_t x = 0;
-        while (c > ' ') {
-            x = x * 10u + (uint32_t)(c - '0');
-            c = getChar();
-        }
-        return x;
-    }
+const char* string_ptrs[MAX_N];
+int string_lens[MAX_N];
+const char* sorted_ptrs[MAX_N];
 
-    uint32_t readIntBits() {
-        char c;
-        do {
-            c = getChar();
-        } while (c <= ' ' && c);
-
-        bool neg = false;
-        if (c == '-') {
-            neg = true;
-            c = getChar();
-        }
-
-        uint32_t x = 0;
-        while (c > ' ') {
-            x = x * 10u + (uint32_t)(c - '0');
-            c = getChar();
-        }
-        return neg ? (0u - x) : x;
-    }
-};
-
-class FastOutput {
-    static const int BUFSIZE = 1 << 16;
-    char buffer[BUFSIZE];
-    int pos = 0;
-
-    inline void putChar(char c) {
-        if (pos == BUFSIZE) flush();
-        buffer[pos++] = c;
-    }
-
-public:
-    ~FastOutput() {
-        flush();
-    }
-
-    void flush() {
-        if (pos) {
-            std::fwrite(buffer, 1, pos, stdout);
-            pos = 0;
-        }
-    }
-
-    void writeUInt(uint32_t x) {
-        char s[10];
-        int n = 0;
-        do {
-            s[n++] = (char)('0' + x % 10u);
-            x /= 10u;
-        } while (x);
-        while (n--) putChar(s[n]);
-        putChar('\n');
-    }
-
-    void writeIntBits(uint32_t bits) {
-        if (bits & 0x80000000u) {
-            putChar('-');
-            writeUInt((~bits) + 1u);
-        } else {
-            writeUInt(bits);
-        }
-    }
-};
+int len_cnt[MAX_LEN];
+int len_offset[MAX_LEN];
+int current_len_offset[MAX_LEN];
 
 int main() {
-    FastInput in;
-    const uint32_t n = in.readUInt();
+    ios::sync_with_stdio(false);
+    cin.tie(NULL);
 
-    std::vector<uint32_t> a(n), b(n);
-    uint32_t cnt[4][256] = {};
+    size_t total_bytes = fread(in_buf, 1, MAX_BUF - 1, stdin);
+    if (total_bytes == 0) return 0;
+    in_buf[total_bytes] = '\0';
 
-    for (uint32_t i = 0; i < n; ++i) {
-        const uint32_t key = in.readIntBits() ^ 0x80000000u;
-        a[i] = key;
-        ++cnt[0][key & 255u];
-        ++cnt[1][(key >> 8) & 255u];
-        ++cnt[2][(key >> 16) & 255u];
-        ++cnt[3][key >> 24];
+    const char* p = in_buf;
+    
+    while (*p && *p <= ' ') p++;
+    
+    int n = 0;
+    while (*p >= '0' && *p <= '9') {
+        n = n * 10 + (*p - '0');
+        p++;
     }
 
-    uint32_t *src = a.data();
-    uint32_t *dst = b.data();
+    int max_len = 0;
+    for (int i = 0; i < n; ++i) {
+        while (*p && *p <= ' ') p++;
+        if (!*p) { n = i; break; }
+        
+        string_ptrs[i] = p;
+        while (*p > ' ') p++;
+        
+        int len = p - string_ptrs[i];
+        string_lens[i] = len;
+        if (len > max_len) max_len = len;
+        len_cnt[len]++;
+    }
 
-    for (int pass = 0; pass < 4; ++pass) {
-        uint32_t pos[256];
-        uint32_t sum = 0;
-        for (int i = 0; i < 256; ++i) {
-            pos[i] = sum;
-            sum += cnt[pass][i];
+    int current_offset = 0;
+    for (int l = 0; l <= max_len; ++l) {
+        len_offset[l] = current_offset;
+        current_offset += len_cnt[l];
+    }
+
+    memcpy(current_len_offset, len_offset, (max_len + 1) * sizeof(int));
+
+    for (int i = 0; i < n; ++i) {
+        int l = string_lens[i];
+        sorted_ptrs[current_len_offset[l]++] = string_ptrs[i];
+    }
+
+    for (int l = 0; l <= max_len; ++l) {
+        int start_idx = len_offset[l];
+        int end_idx = current_len_offset[l];
+        
+        if (start_idx >= end_idx) continue;
+
+        sort(sorted_ptrs + start_idx, sorted_ptrs + end_idx, [l](const char* a, const char* b) {
+            return memcmp(a, b, l) < 0;
+        });
+    }
+
+    char* out_ptr = out_buf;
+    out_ptr += sprintf(out_ptr, "%d\n", n);
+
+    for (int l = 0; l <= max_len; ++l) {
+        int start_idx = len_offset[l];
+        int end_idx = current_len_offset[l];
+        for (int i = start_idx; i < end_idx; ++i) {
+            memcpy(out_ptr, sorted_ptrs[i], l);
+            out_ptr += l;
+            *out_ptr++ = '\n';
         }
-
-        const int shift = pass * 8;
-        for (uint32_t i = 0; i < n; ++i) {
-            const uint32_t x = src[i];
-            dst[pos[(x >> shift) & 255u]++] = x;
-        }
-
-        uint32_t *tmp = src;
-        src = dst;
-        dst = tmp;
     }
 
-    FastOutput out;
-    out.writeUInt(n);
-    for (uint32_t i = 0; i < n; ++i) {
-        out.writeIntBits(src[i] ^ 0x80000000u);
-    }
+    fwrite(out_buf, 1, out_ptr - out_buf, stdout);
 
     return 0;
 }
