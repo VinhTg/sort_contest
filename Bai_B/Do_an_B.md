@@ -1,4 +1,4 @@
-# Câu 1: Thuật toán tốt nhất lần 1
+# Thuật toán tốt nhất lần 1
 
 ## Thuật toán
 
@@ -112,7 +112,7 @@ Nhờ đó thuật toán tận dụng tốt cấu trúc dữ liệu chuỗi và 
 
 ---
 
-# Câu 2: Sinh test case và thuật toán mục tiêu
+# Sinh test case và thuật toán mục tiêu
 
 ## Cấu trúc dữ liệu sinh ra
 
@@ -157,7 +157,7 @@ Mục tiêu chung là làm tăng số mức đệ quy, số lần khởi tạo b
 
 ---
 
-# Câu 3: Thuật toán tốt nhất lần 2
+# Thuật toán tốt nhất lần 2
 
 ## Thuật toán
 
