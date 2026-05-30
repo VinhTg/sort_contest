@@ -1,95 +1,136 @@
-#include <iostream>
-#include <cstring>
-#include <algorithm>
 #include <cstdio>
+#include <cstring>
+#include <iostream>
 
 using namespace std;
 
-const int MAX_BUF = 30000005; 
-const int MAX_N = 1000005;     
-const int MAX_LEN = 10005;
+const int MAXN = 500000 + 5;
+const int BUF_SIZE = 1 << 24;
+const int INSERTION_SORT_THRESHOLD = 32;
 
-char in_buf[MAX_BUF];
-char out_buf[MAX_BUF];
+char in_buf[BUF_SIZE];
+char out_buf[BUF_SIZE];
+int out_ptr = 0;
 
-const char* string_ptrs[MAX_N];
-int string_lens[MAX_N];
-const char* sorted_ptrs[MAX_N];
+struct StringRef {
+    char* s;
+    int len;
+};
 
-int len_cnt[MAX_LEN];
-int len_offset[MAX_LEN];
-int current_len_offset[MAX_LEN];
+StringRef arr[MAXN];
+StringRef aux[MAXN];
 
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(NULL);
+inline int cmp_str(const StringRef& a, const StringRef& b, int d) {
+    return strcmp(a.s + d, b.s + d);
+}
 
-    size_t total_bytes = fread(in_buf, 1, MAX_BUF - 1, stdin);
-    if (total_bytes == 0) return 0;
-    in_buf[total_bytes] = '\0';
+inline void insertion_sort(StringRef* a, int n, int d) {
+    for (int i = 1; i < n; i++) {
+        StringRef tmp = a[i];
+        int j = i - 1;
 
-    const char* p = in_buf;
-    
-    while (*p && *p <= ' ') p++;
-    
-    int n = 0;
-    while (*p >= '0' && *p <= '9') {
-        n = n * 10 + (*p - '0');
-        p++;
+        while (j >= 0 && cmp_str(a[j], tmp, d) > 0) {
+            a[j + 1] = a[j];
+            --j;
+        }
+
+        a[j + 1] = tmp;
+    }
+}
+
+void msd_sort(StringRef* a, StringRef* aux, int l, int r, int d) {
+    if (r - l <= INSERTION_SORT_THRESHOLD) {
+        insertion_sort(a + l, r - l, d);
+        return;
     }
 
-    int max_len = 0;
-    for (int i = 0; i < n; ++i) {
-        while (*p && *p <= ' ') p++;
-        if (!*p) { n = i; break; }
-        
-        string_ptrs[i] = p;
-        while (*p > ' ') p++;
-        
-        int len = p - string_ptrs[i];
-        string_lens[i] = len;
-        if (len > max_len) max_len = len;
-        len_cnt[len]++;
+    int cnt[257] = {};
+
+    // counting
+    for (int i = l; i < r; i++) {
+        cnt[(unsigned char)a[i].s[d] + 1]++;
     }
 
-    int current_offset = 0;
-    for (int l = 0; l <= max_len; ++l) {
-        len_offset[l] = current_offset;
-        current_offset += len_cnt[l];
+    // prefix sum
+    for (int i = 1; i < 257; i++) {
+        cnt[i] += cnt[i - 1];
     }
 
-    memcpy(current_len_offset, len_offset, (max_len + 1) * sizeof(int));
+    int pos[257];
+    memcpy(pos, cnt, sizeof(cnt));
 
-    for (int i = 0; i < n; ++i) {
-        int l = string_lens[i];
-        sorted_ptrs[current_len_offset[l]++] = string_ptrs[i];
+    // distribute
+    for (int i = l; i < r; i++) {
+        unsigned char c = (unsigned char)a[i].s[d];
+        aux[l + pos[c]++] = a[i];
     }
 
-    for (int l = 0; l <= max_len; ++l) {
-        int start_idx = len_offset[l];
-        int end_idx = current_len_offset[l];
-        
-        if (start_idx >= end_idx) continue;
+    // copy back
+    memcpy(a + l, aux + l, (r - l) * sizeof(StringRef));
 
-        sort(sorted_ptrs + start_idx, sorted_ptrs + end_idx, [l](const char* a, const char* b) {
-            return memcmp(a, b, l) < 0;
-        });
-    }
+    // recurse
+    for (int i = 0; i < 256; i++) {
+        int L = l + cnt[i];
+        int R = l + cnt[i + 1];
 
-    char* out_ptr = out_buf;
-    out_ptr += sprintf(out_ptr, "%d\n", n);
-
-    for (int l = 0; l <= max_len; ++l) {
-        int start_idx = len_offset[l];
-        int end_idx = current_len_offset[l];
-        for (int i = start_idx; i < end_idx; ++i) {
-            memcpy(out_ptr, sorted_ptrs[i], l);
-            out_ptr += l;
-            *out_ptr++ = '\n';
+        if (R - L > 1) {
+            msd_sort(a, aux, L, R, d + 1);
         }
     }
+}
 
-    fwrite(out_buf, 1, out_ptr - out_buf, stdout);
+int main() {
+    int bytes = fread(in_buf, 1, BUF_SIZE, stdin);
+    if (bytes <= 0) return 0;
+
+    int p = 0;
+    int n = 0;
+
+    // read n
+    while (in_buf[p] < '0' || in_buf[p] > '9') p++;
+
+    while (in_buf[p] >= '0' && in_buf[p] <= '9') {
+        n = n * 10 + (in_buf[p++] - '0');
+    }
+
+    // read strings
+    for (int i = 0; i < n; i++) {
+
+        while (in_buf[p] <= 32) p++;
+
+        arr[i].s = &in_buf[p];
+
+        char* start = &in_buf[p];
+
+        while (in_buf[p] > 32) p++;
+
+        arr[i].len = &in_buf[p] - start;
+
+        in_buf[p++] = '\0';
+    }
+
+    msd_sort(arr, aux, 0, n, 0);
+
+    // output n
+    char tmp[32];
+    int len = sprintf(tmp, "%d\n", n);
+    fwrite(tmp, 1, len, stdout);
+
+    // output strings
+    for (int i = 0; i < n; i++) {
+
+        if (out_ptr + arr[i].len + 1 >= BUF_SIZE) {
+            fwrite(out_buf, 1, out_ptr, stdout);
+            out_ptr = 0;
+        }
+
+        memcpy(out_buf + out_ptr, arr[i].s, arr[i].len);
+
+        out_ptr += arr[i].len;
+        out_buf[out_ptr++] = '\n';
+    }
+
+    fwrite(out_buf, 1, out_ptr, stdout);
 
     return 0;
 }
