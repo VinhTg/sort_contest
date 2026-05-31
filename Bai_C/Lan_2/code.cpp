@@ -1,136 +1,106 @@
-#include <cstdio>
-#include <cstring>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
-const int MAXN = 500000 + 5;
-const int BUF_SIZE = 1 << 24;
-const int INSERTION_SORT_THRESHOLD = 32;
+const int MAX_BUF = 30000005; 
+const int MAXN = 1000005;
+const int MAXL = 10005;
 
-char in_buf[BUF_SIZE];
-char out_buf[BUF_SIZE];
-int out_ptr = 0;
+char pool_buf[MAX_BUF]; 
+char* str_ptrs[MAXN];   
+int lengths[MAXN];
 
-struct StringRef {
-    char* s;
-    int len;
-};
+int head[MAXL];
+int next_idx[MAXN];
 
-StringRef arr[MAXN];
-StringRef aux[MAXN];
+int A[MAXN];
 
-inline int cmp_str(const StringRef& a, const StringRef& b, int d) {
-    return strcmp(a.s + d, b.s + d);
-}
+void mkqsort(int l, int r, int depth) {
+    if (l >= r) return;
 
-inline void insertion_sort(StringRef* a, int n, int d) {
-    for (int i = 1; i < n; i++) {
-        StringRef tmp = a[i];
-        int j = i - 1;
+    int mid = l + (r - l) / 2;
+    int temp_m = A[l]; A[l] = A[mid]; A[mid] = temp_m;
 
-        while (j >= 0 && cmp_str(a[j], tmp, d) > 0) {
-            a[j + 1] = a[j];
-            --j;
-        }
+    int pivot = str_ptrs[A[l]][depth];
+    int lt = l, i = l + 1, gt = r;
 
-        a[j + 1] = tmp;
-    }
-}
-
-void msd_sort(StringRef* a, StringRef* aux, int l, int r, int d) {
-    if (r - l <= INSERTION_SORT_THRESHOLD) {
-        insertion_sort(a + l, r - l, d);
-        return;
-    }
-
-    int cnt[257] = {};
-
-    // counting
-    for (int i = l; i < r; i++) {
-        cnt[(unsigned char)a[i].s[d] + 1]++;
-    }
-
-    // prefix sum
-    for (int i = 1; i < 257; i++) {
-        cnt[i] += cnt[i - 1];
-    }
-
-    int pos[257];
-    memcpy(pos, cnt, sizeof(cnt));
-
-    // distribute
-    for (int i = l; i < r; i++) {
-        unsigned char c = (unsigned char)a[i].s[d];
-        aux[l + pos[c]++] = a[i];
-    }
-
-    // copy back
-    memcpy(a + l, aux + l, (r - l) * sizeof(StringRef));
-
-    // recurse
-    for (int i = 0; i < 256; i++) {
-        int L = l + cnt[i];
-        int R = l + cnt[i + 1];
-
-        if (R - L > 1) {
-            msd_sort(a, aux, L, R, d + 1);
+    while (i <= gt) {
+        int c = str_ptrs[A[i]][depth];
+        if (c < pivot) {
+            int temp = A[lt]; A[lt] = A[i]; A[i] = temp;
+            lt++; i++;
+        } else if (c > pivot) {
+            int temp = A[gt]; A[gt] = A[i]; A[i] = temp;
+            gt--;
+        } else {
+            i++;
         }
     }
+
+    mkqsort(l, lt - 1, depth);
+    if (pivot != '\0') {
+        mkqsort(lt, gt, depth + 1);
+    }
+    mkqsort(gt + 1, r, depth);
 }
 
 int main() {
-    int bytes = fread(in_buf, 1, BUF_SIZE, stdin);
-    if (bytes <= 0) return 0;
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
 
-    int p = 0;
-    int n = 0;
+    int n;
+    if (!(cin >> n)) return 0;
 
-    // read n
-    while (in_buf[p] < '0' || in_buf[p] > '9') p++;
+    int pool_ptr = 0;
+    int max_len = 0;
+    string tmp;
 
-    while (in_buf[p] >= '0' && in_buf[p] <= '9') {
-        n = n * 10 + (in_buf[p++] - '0');
+    for (int i = 0; i < n; ++i) {
+        cin >> tmp;
+        str_ptrs[i] = pool_buf + pool_ptr; 
+        
+        int len = tmp.length();
+        for (int j = 0; j <= len; ++j) {
+            str_ptrs[i][j] = tmp[j];
+        }
+        
+        lengths[i] = len;
+        pool_ptr += len + 1; 
+        
+        if (len > max_len) {
+            max_len = len;
+        }
     }
 
-    // read strings
-    for (int i = 0; i < n; i++) {
-
-        while (in_buf[p] <= 32) p++;
-
-        arr[i].s = &in_buf[p];
-
-        char* start = &in_buf[p];
-
-        while (in_buf[p] > 32) p++;
-
-        arr[i].len = &in_buf[p] - start;
-
-        in_buf[p++] = '\0';
+    for (int i = 0; i <= max_len; ++i) {
+        head[i] = -1;
     }
 
-    msd_sort(arr, aux, 0, n, 0);
+    for (int i = n - 1; i >= 0; --i) {
+        int len = lengths[i];
+        next_idx[i] = head[len];
+        head[len] = i;
+    }
 
-    // output n
-    char tmp[32];
-    int len = sprintf(tmp, "%d\n", n);
-    fwrite(tmp, 1, len, stdout);
+    cout << n << "\n";
 
-    // output strings
-    for (int i = 0; i < n; i++) {
+    for (int L = 1; L <= max_len; ++L) {
+        if (head[L] == -1) continue;
 
-        if (out_ptr + arr[i].len + 1 >= BUF_SIZE) {
-            fwrite(out_buf, 1, out_ptr, stdout);
-            out_ptr = 0;
+        int sz = 0;
+        for (int i = head[L]; i != -1; i = next_idx[i]) {
+            A[sz++] = i;
         }
 
-        memcpy(out_buf + out_ptr, arr[i].s, arr[i].len);
+        if (sz > 1) {
+            mkqsort(0, sz - 1, 0);
+        }
 
-        out_ptr += arr[i].len;
-        out_buf[out_ptr++] = '\n';
+        for (int i = 0; i < sz; ++i) {
+            cout << str_ptrs[A[i]] << "\n";
+        }
     }
-
-    fwrite(out_buf, 1, out_ptr, stdout);
 
     return 0;
 }
