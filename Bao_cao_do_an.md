@@ -514,19 +514,7 @@ Chương trình kết hợp hai thuật toán sắp xếp để giải quyết b
 
 **Độ phức tạp:** Thời gian trung bình O(W), với W là tổng độ dài tất cả các chuỗi.
 
----
-
-### 3.1.2. Các vấn đề logic trong code hiện tại
-
-Trước khi tối ưu, có một số điểm trong code có rủi ro tiềm ẩn cần lưu ý:
-
-- **Vòng lặp in kết quả bắt đầu từ 10:** Dùng `for (int i=10; i<=100; i++)` sẽ khiến mọi chuỗi có độ dài từ 1 đến 9 **bị bỏ qua hoàn toàn**. Trừ khi đề bài bắt buộc chuỗi phải dài từ 10 ký tự trở lên, đây là một lỗi sai. Vòng lặp nên bắt đầu từ `1`.
-- **Giới hạn độ dài chuỗi:** Khai báo `a[101]` sẽ gây lỗi bộ nhớ (Segmentation Fault) nếu đầu vào có chuỗi dài 101 ký tự trở lên.
-- **Ràng buộc ký tự:** Code giả định 100% ký tự đều là chữ cái in thường từ `'a'` đến `'z'`. Nếu đầu vào có chữ in hoa, số hoặc khoảng trắng, biểu thức `int c = ch - 'a'` sẽ sinh ra số âm, dẫn đến lỗi tràn viền mảng `cnt`.
-
----
-
-### 3.1.3. Các hướng tối ưu
+### 3.1.2. Các hướng tối ưu
 
 MSD Radix Sort rất nhanh về lý thuyết, nhưng có nhược điểm: **chi phí gọi đệ quy và khởi tạo mảng quá lớn đối với các tập dữ liệu nhỏ**.
 
