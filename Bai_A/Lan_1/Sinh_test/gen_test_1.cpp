@@ -8,7 +8,7 @@ using namespace std;
 void test1() {
     ofstream fout("test1.in");
 
-    int n = 10000;
+    int n = 100000;
     fout << n << '\n';
 
     mt19937 rng(
@@ -16,10 +16,17 @@ void test1() {
     );
 
     for (int i = 0; i < n; i++) {
-        int y = rng() % 1000000;
+        unsigned int x = rng();
+
+        x ^= (rng() << 8);
+        x ^= (rng() << 16);
+
+        int y = (int)x;
 
         if (i & 1)
             y = -y;
+
+        y ^= (i * 16777619);
 
         fout << y << '\n';
     }
@@ -28,6 +35,12 @@ void test1() {
 }
 
 int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
     test1();
+
+    cout << "Da tao xong test1.in\n";
+
     return 0;
 }
