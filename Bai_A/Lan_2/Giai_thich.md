@@ -1,171 +1,199 @@
-﻿So sánh tối ưu giữa lần 1 và lần 2
-Lần 1
+﻿# So sánh tối ưu giữa lần 1 và lần 2
 
-Lần 1 sử dụng Optimized Quick Sort gồm:
+## Lần 1
 
-Hoare Partition
-Median-of-Three
-Insertion Sort
-Tail Recursion
+Lần 1 sử dụng **Optimized Quick Sort** gồm các kỹ thuật:
 
-Thuật toán hoạt động dựa trên:
+* Hoare Partition
+* Median-of-Three Pivot Selection
+* Insertion Sort cho mảng nhỏ
+* Tail Recursion Optimization
 
-so sánh phần tử
-chọn pivot
-phân hoạch mảng
-đệ quy sắp xếp
+Thuật toán hoạt động dựa trên việc:
+
+* So sánh các phần tử
+* Chọn pivot
+* Phân hoạch mảng
+* Đệ quy sắp xếp các đoạn con
 
 Độ phức tạp trung bình:
 
-O(nlogn)
-Lần 2
+**O(n log n)**
 
-Lần 2 chuyển sang sử dụng LSD Radix Sort Base 256 kết hợp:
+---
 
-Fast IO (fread, fwrite)
-Buffer thủ công
-Xử lý bit trực tiếp
-Mảng tĩnh
+## Lần 2
+
+Lần 2 chuyển sang sử dụng **LSD Radix Sort Base 256** kết hợp với:
+
+* Fast I/O (`fread`, `fwrite`)
+* Buffer đọc ghi thủ công
+* Xử lý bit trực tiếp
+* Mảng tĩnh
 
 Thuật toán không sử dụng phép so sánh mà sắp xếp trực tiếp theo từng byte của số nguyên 32-bit.
 
 Độ phức tạp:
 
-O(n)
-Các hướng tối ưu so với lần 1
-1. Chuyển từ Comparison Sort sang Non-Comparison Sort
+**O(n)**
 
-Lần 1:
+---
 
-Quick Sort
+# Các hướng tối ưu so với lần 1
 
-phải thực hiện rất nhiều phép so sánh.
+## 1. Chuyển từ Comparison Sort sang Non-Comparison Sort
 
-Lần 2:
+Phiên bản đầu sử dụng Quick Sort nên phải thực hiện số lượng lớn phép so sánh giữa các phần tử.
 
-Radix Sort
+Phiên bản thứ hai sử dụng Radix Sort, chỉ phân phối dữ liệu theo từng byte nên không cần thực hiện phép so sánh.
 
-chỉ phân phối dữ liệu theo byte.
+Điều này giúp giảm đáng kể branch misprediction và tăng hiệu suất xử lý của CPU.
 
-Giảm đáng kể số phép so sánh và branch của CPU.
+---
 
-2. Độ phức tạp tuyến tính
+## 2. Giảm độ phức tạp thuật toán
 
 Quick Sort:
 
-O(nlogn)
+**O(n log n)**
 
 Radix Sort:
 
-O(4n)
+**O(4n) ≈ O(n)**
 
-vì số nguyên 32-bit chỉ cần 4 lần xử lý.
+Do số nguyên 32-bit chỉ cần xử lý 4 byte nên số vòng lặp luôn cố định.
 
-3. Loại bỏ hoàn toàn đệ quy
+---
 
-Quick Sort vẫn có:
+## 3. Loại bỏ hoàn toàn đệ quy
 
-quickSort(...)
+Quick Sort sử dụng đệ quy nên phát sinh chi phí quản lý stack.
 
-gây overhead stack.
+Radix Sort hoạt động hoàn toàn bằng vòng lặp nên loại bỏ được overhead này.
 
-Radix Sort sử dụng vòng lặp hoàn toàn nên không tốn chi phí đệ quy.
+---
 
-4. Fast IO
+## 4. Tối ưu đọc ghi dữ liệu
 
-Lần 1 sử dụng:
+Phiên bản đầu sử dụng:
 
+```cpp
 cin / cout
+```
 
-Lần 2 sử dụng:
+Phiên bản thứ hai sử dụng:
 
+```cpp
 fread / fwrite
+```
 
-kết hợp buffer lớn:
-f[];
+kết hợp buffer lớn giúp giảm số lần gọi hàm I/O và tăng tốc độ đọc ghi dữ liệu.
 
-Giảm đáng kể thời gian đọc ghi dữ liệu lớn.
+---
 
-5. Parse số nguyên thủ công
+## 5. Parse số nguyên thủ công
 
 Sử dụng:
 
+```cpp
 read_int()
 write_int()
+```
 
-thay cho iostream.
+thay cho cơ chế của iostream.
 
-Giúp giảm overhead của thư viện chuẩn C++.
+Cách làm này giúp giảm đáng kể chi phí xử lý khi làm việc với lượng dữ liệu lớn.
 
-6. Xử lý bit trực tiếp
+---
 
-Sử dụng:
+## 6. Xử lý bit trực tiếp
 
+Các byte của số nguyên được lấy bằng:
+
+```cpp
 (v >> shift) & 0xFF
+```
 
-để lấy từng byte.
+CPU xử lý các phép dịch bit và mask rất nhanh, giúp tăng tốc độ thực thi.
 
-CPU xử lý rất nhanh nhờ các phép dịch bit và mask.
+---
 
-7. Thống kê đồng thời 4 pass
+## 7. Thống kê đồng thời 4 pass
 
-Trong một lần duyệt dữ liệu:
+Trong một lần duyệt dữ liệu, chương trình đồng thời thống kê cho cả 4 byte:
 
+```cpp
 cnt[0][...]
 cnt[1][...]
 cnt[2][...]
 cnt[3][...]
+```
 
-đã thu thập thống kê cho cả 4 byte.
+Giúp giảm số lần quét mảng và tăng hiệu quả sử dụng bộ nhớ đệm.
 
-Giảm số lần quét mảng.
+---
 
-8. Dùng mảng tĩnh
+## 8. Sử dụng mảng tĩnh
 
-Lần 1:
+Phiên bản đầu:
 
+```cpp
 new int[n]
+```
 
-Lần 2:
+Phiên bản thứ hai:
 
+```cpp
 unsigned int arr_a[MAXN];
 unsigned int arr_b[MAXN];
+```
 
-Tránh cấp phát động và tăng cache locality.
+Giúp tránh chi phí cấp phát động và cải thiện cache locality.
 
-9. Tối ưu cache CPU
+---
+
+## 9. Tối ưu cache CPU
 
 Radix Sort truy cập dữ liệu tuần tự:
 
-for (i = 0; i < n; i++)
+```cpp
+for (int i = 0; i < n; i++)
+```
 
-Giúp:
+Điều này giúp:
 
-giảm cache miss
-tăng hiệu quả prefetch
+* Giảm cache miss
+* Tăng hiệu quả prefetch
+* Tận dụng tốt bộ nhớ đệm CPU
 
-Trong khi Quick Sort truy cập dữ liệu phân tán hơn.
+Trong khi Quick Sort thường truy cập dữ liệu phân tán hơn.
 
-10. Xử lý số âm bằng XOR
+---
+
+## 10. Xử lý số âm bằng XOR
 
 Sử dụng:
 
+```cpp
 arr_a[i] ^= 0x80000000;
+```
 
-để chuyển thứ tự signed thành unsigned.
+để chuyển thứ tự signed sang unsigned trước khi sắp xếp.
 
-Không cần tách riêng số âm và số dương.
+Nhờ đó không cần xử lý riêng số âm và số dương.
 
-Kết luận
+---
 
-Phiên bản lần 2 tối ưu hơn lần 1 nhờ:
+# Kết luận
 
-chuyển từ Quick Sort sang Radix Sort
-giảm độ phức tạp từ O(nlogn) xuống O(n)
-loại bỏ đệ quy
-sử dụng Fast IO
-xử lý bit trực tiếp
-tối ưu cache CPU
-giảm chi phí cấp phát bộ nhớ
+Phiên bản lần 2 tối ưu hơn phiên bản lần 1 nhờ:
 
-Kết quả là tốc độ thực tế nhanh hơn đáng kể trên các bộ test lớn trong bài toán sắp xếp số nguyên.
+* Chuyển từ Quick Sort sang Radix Sort
+* Giảm độ phức tạp từ **O(n log n)** xuống **O(n)**
+* Loại bỏ hoàn toàn đệ quy
+* Sử dụng Fast I/O
+* Xử lý dữ liệu bằng bit
+* Tối ưu cache CPU
+* Giảm chi phí cấp phát bộ nhớ
+
+Kết quả là thời gian thực thi thực tế nhanh hơn đáng kể trên các bộ dữ liệu lớn, đặc biệt trong các bài toán **Sort Contest** và **Competitive Programming**.
