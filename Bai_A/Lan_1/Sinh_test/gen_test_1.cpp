@@ -11,26 +11,20 @@ void test1() {
     int n = 100000;
     fout << n << '\n';
 
-    // Khởi tạo bộ sinh số ngẫu nhiên chuẩn 64-bit để tránh tràn bit khi dịch
-    mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+    // Dùng mt19937 (32-bit) là đủ cho kiểu int, không cần 64-bit
+    mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
+    // Nếu muốn giới hạn khoảng số (ví dụ từ -1 tỷ đến 1 tỷ) thì dùng uniform_int_distribution
+    // Còn nếu muốn lấy toàn bộ dải của int thì để rng() tự sinh và ép kiểu
     for (int i = 0; i < n; i++) {
-        // Lấy 1 lần giá trị ngẫu nhiên duy nhất
-        unsigned long long random_val = rng();
+        int y = (int)rng(); // Tự động trải đều từ -2^31 đến 2^31 - 1
 
-        // Xáo trộn bit bằng các hằng số dịch bit nhanh (Bitwise shift)
-        random_val ^= (random_val << 13);
-        random_val ^= (random_val >> 7);
-        random_val ^= (random_val << 17);
-
-        int y = (int)(random_val & 0xFFFFFFFF); // Ép về kiểu int 32-bit
-
-        // Đổi dấu luân phiên
-        if (i & 1)
-            y = -y;
-
-        // XOR với hằng số FNV-1a để triệt tiêu tính tuần hoàn
-        y ^= (i * 16777619);
+        // Nếu bạn THỰC SỰ muốn dòng sau phải luân phiên Dương - Âm - Dương - Âm:
+        if (i & 1) {
+            y = -abs(y); // Chắc chắn âm ở vị trí lẻ
+        } else {
+            y = abs(y);  // Chắc chắn dương ở vị trí chẵn
+        }
 
         fout << y << '\n';
     }
